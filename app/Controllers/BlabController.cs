@@ -34,7 +34,7 @@ namespace Verademo.Controllers
         private string sqlSearchBlabs =
             "SELECT b.blabber, b.content, b.timestamp " +
             "FROM blabs b " +
-            "WHERE b.content LIKE '%{0}%' " + 
+            "WHERE b.content LIKE '%' + @searchText + '%' " +
             "ORDER BY b.timestamp DESC";
         
         private string sqlBlabDetails = 
@@ -60,8 +60,7 @@ namespace Verademo.Controllers
                 "SUM(case when listeners.status='Active' then 1 else 0 end) as totallistening "+
             "FROM users LEFT JOIN listeners ON users.username = listeners.blabber "+
             "WHERE users.username NOT IN ('admin', @username) "+
-            "GROUP BY users.username,users.blab_name, users.created_at " +
-            "ORDER BY {0}";
+            "GROUP BY users.username,users.blab_name, users.created_at";
 
         public BlabController()
         {
@@ -80,6 +79,7 @@ namespace Verademo.Controllers
         }
 
         [ActionName("SearchBlabs"), HttpPost]
+        [ValidateAntiForgeryToken]
         public ActionResult PostSearchBlabs(string searchText)
         {
             if (IsUserLoggedIn() == false)
@@ -92,7 +92,8 @@ namespace Verademo.Controllers
             {
                 dbContext.Database.Connection.Open();
                 var searchBlabs = dbContext.Database.Connection.CreateCommand();
-                searchBlabs.CommandText = string.Format(sqlSearchBlabs, searchText);
+                searchBlabs.CommandText = sqlSearchBlabs;
+                searchBlabs.Parameters.Add(new SqlParameter("@searchText", searchText));
                 
                 var searchBlabsResults = searchBlabs.ExecuteReader();
                 while (searchBlabsResults.Read())
@@ -193,6 +194,7 @@ namespace Verademo.Controllers
         }
 
         [ActionName("Feed"), HttpPost]
+        [ValidateAntiForgeryToken]
         public ActionResult PostFeed(string blab)
         {
             if (IsUserLoggedIn() == false)
@@ -255,7 +257,28 @@ namespace Verademo.Controllers
                 {
                     dbContext.Database.Connection.Open();
                     var blabbers = dbContext.Database.Connection.CreateCommand();
-                    blabbers.CommandText = string.Format(sqlBlabbers, sort);
+
+                    // Validate and sanitize sort parameter to prevent SQL injection
+                    var allowedSortColumns = new Dictionary<string, string>
+                    {
+                        { "blab_name", "blab_name" },
+                        { "username", "username" },
+                        { "created_at", "created_at" },
+                        { "blab_name ASC", "blab_name ASC" },
+                        { "blab_name DESC", "blab_name DESC" },
+                        { "username ASC", "username ASC" },
+                        { "username DESC", "username DESC" },
+                        { "created_at ASC", "created_at ASC" },
+                        { "created_at DESC", "created_at DESC" }
+                    };
+
+                    string validatedSort = "blab_name ASC"; // default
+                    if (!string.IsNullOrWhiteSpace(sort) && allowedSortColumns.ContainsKey(sort))
+                    {
+                        validatedSort = allowedSortColumns[sort];
+                    }
+
+                    blabbers.CommandText = sqlBlabbers + " ORDER BY " + validatedSort;
                     blabbers.Parameters.Add(new SqlParameter("@username", username));
 
                     var blabbersResults = blabbers.ExecuteReader();
@@ -286,6 +309,7 @@ namespace Verademo.Controllers
         }
 
         [HttpPost, ActionName("Blabbers")]
+        [ValidateAntiForgeryToken]
         public ActionResult PostBlabbers(string blabberUsername, string command)
         {
             if (IsUserLoggedIn() == false)
@@ -321,6 +345,7 @@ namespace Verademo.Controllers
 
 
         [HttpPost, ActionName("Blab")]
+        [ValidateAntiForgeryToken]
         public ActionResult PostBlab(int blabId, string comment)
         {
             if (IsUserLoggedIn() == false)
