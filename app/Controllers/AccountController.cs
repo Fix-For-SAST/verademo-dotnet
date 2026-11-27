@@ -11,6 +11,7 @@ using System.Reflection;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Security.Cryptography;
+using System.Web;
 using Newtonsoft.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
@@ -223,11 +224,18 @@ namespace Verademo.Controllers
             if (file != null &&  file.Length > 0) 
             {
                 // Get old image name, if any, to delete
-                var oldImage = ValidateFilePath(imageDir, userName + ".png");
+                // Canonicalize and validate the path to prevent path traversal
+                string canonicalBasePath = Path.GetFullPath(imageDir);
+                string oldImagePath = Path.GetFullPath(Path.Combine(imageDir, userName + ".png"));
                 
-                if (System.IO.File.Exists(oldImage))
+                if (!oldImagePath.StartsWith(canonicalBasePath + Path.DirectorySeparatorChar))
                 {
-                    System.IO.File.Delete(oldImage);
+                    throw new ArgumentException("Invalid file path");
+                }
+
+                if (System.IO.File.Exists(oldImagePath))
+                {
+                    System.IO.File.Delete(oldImagePath);
                 }
 		
                 var extension = Path.GetExtension(file.FileName).ToLower();
@@ -268,16 +276,16 @@ namespace Verademo.Controllers
                     var match = dbContext.Users.FirstOrDefault(x => x.UserName == userName);
                     if (match == null)
                     {
-                        return Content("No password found for " + userName);
+                        return Content("No password found for " + HttpUtility.HtmlEncode(userName));
                     }
 
                     if (match.PasswordHint == null)
                     {
-                        return Content("Username '" + userName + "' has no password hint!");
+                        return Content("Username '" + HttpUtility.HtmlEncode(userName) + "' has no password hint!");
                     }
 
-                    var formatString = "Username '" + userName + "' has password: {0}";
-                    return Content(string.Format(formatString, match.PasswordHint.Substring(0, 2) + new string('*', match.PasswordHint.Length - 2)));
+                    var formatString = "Username '" + HttpUtility.HtmlEncode(userName) + "' has password: {0}";
+                    return Content(string.Format(formatString, HttpUtility.HtmlEncode(match.PasswordHint.Substring(0, 2) + new string('*', match.PasswordHint.Length - 2))));
                 }
             }
             catch (Exception)
@@ -321,8 +329,21 @@ namespace Verademo.Controllers
             }
 
             var imageDir = Path.Combine(_environment.WebRootPath, "images");
-            var oldFilename = ValidateFilePath(imageDir, oldUsername + ".png");
-            var newFilename = ValidateFilePath(imageDir, newUsername + ".png");
+
+            // Canonicalize and validate paths to prevent path traversal
+            string canonicalBasePath = Path.GetFullPath(imageDir);
+            string oldFilename = Path.GetFullPath(Path.Combine(imageDir, oldUsername + ".png"));
+            string newFilename = Path.GetFullPath(Path.Combine(imageDir, newUsername + ".png"));
+
+            if (!oldFilename.StartsWith(canonicalBasePath + Path.DirectorySeparatorChar))
+            {
+                throw new ArgumentException("Invalid old file path");
+            }
+
+            if (!newFilename.StartsWith(canonicalBasePath + Path.DirectorySeparatorChar))
+            {
+                throw new ArgumentException("Invalid new file path");
+            }
 
             if (System.IO.File.Exists(oldFilename))
             {
@@ -385,7 +406,15 @@ namespace Verademo.Controllers
             }
 
             var imageDir = Path.Combine(_environment.WebRootPath, "images");
-            var imagePath = ValidateFilePath(imageDir, image);
+
+            // Canonicalize and validate the path to prevent path traversal
+            string canonicalBasePath = Path.GetFullPath(imageDir);
+            string imagePath = Path.GetFullPath(Path.Combine(imageDir, image));
+
+            if (!imagePath.StartsWith(canonicalBasePath + Path.DirectorySeparatorChar))
+            {
+                throw new ArgumentException("Invalid file path");
+            }
 
             logger.Info("Fetching profile image: " + WebUtility.UrlEncode(imagePath));
 
@@ -533,7 +562,16 @@ namespace Verademo.Controllers
             try
             {
                 var sourcePath = Path.Combine(imageDir, "default_profile.png");
-                var destPath = ValidateFilePath(imageDir, user.UserName + ".png");
+
+                // Canonicalize and validate the destination path to prevent path traversal
+                string canonicalBasePath = Path.GetFullPath(imageDir);
+                string destPath = Path.GetFullPath(Path.Combine(imageDir, user.UserName + ".png"));
+
+                if (!destPath.StartsWith(canonicalBasePath + Path.DirectorySeparatorChar))
+                {
+                    throw new ArgumentException("Invalid file path");
+                }
+
                 System.IO.File.Copy(sourcePath, destPath);
             }
             catch (Exception ex)
