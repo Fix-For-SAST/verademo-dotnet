@@ -228,7 +228,8 @@ namespace Verademo.Controllers
                 string canonicalBasePath = Path.GetFullPath(imageDir);
                 string oldImagePath = Path.GetFullPath(Path.Combine(imageDir, userName + ".png"));
                 
-                if (!oldImagePath.StartsWith(canonicalBasePath + Path.DirectorySeparatorChar))
+                if (!oldImagePath.StartsWith(canonicalBasePath + Path.DirectorySeparatorChar) &&
+                    !oldImagePath.Equals(canonicalBasePath))
                 {
                     throw new ArgumentException("Invalid file path");
                 }
@@ -335,12 +336,14 @@ namespace Verademo.Controllers
             string oldFilename = Path.GetFullPath(Path.Combine(imageDir, oldUsername + ".png"));
             string newFilename = Path.GetFullPath(Path.Combine(imageDir, newUsername + ".png"));
 
-            if (!oldFilename.StartsWith(canonicalBasePath + Path.DirectorySeparatorChar))
+            if (!oldFilename.StartsWith(canonicalBasePath + Path.DirectorySeparatorChar) &&
+                !oldFilename.Equals(canonicalBasePath))
             {
                 throw new ArgumentException("Invalid old file path");
             }
 
-            if (!newFilename.StartsWith(canonicalBasePath + Path.DirectorySeparatorChar))
+            if (!newFilename.StartsWith(canonicalBasePath + Path.DirectorySeparatorChar) &&
+                !newFilename.Equals(canonicalBasePath))
             {
                 throw new ArgumentException("Invalid new file path");
             }
@@ -411,7 +414,8 @@ namespace Verademo.Controllers
             string canonicalBasePath = Path.GetFullPath(imageDir);
             string imagePath = Path.GetFullPath(Path.Combine(imageDir, image));
 
-            if (!imagePath.StartsWith(canonicalBasePath + Path.DirectorySeparatorChar))
+            if (!imagePath.StartsWith(canonicalBasePath + Path.DirectorySeparatorChar) &&
+                !imagePath.Equals(canonicalBasePath))
             {
                 throw new ArgumentException("Invalid file path");
             }
@@ -567,7 +571,8 @@ namespace Verademo.Controllers
                 string canonicalBasePath = Path.GetFullPath(imageDir);
                 string destPath = Path.GetFullPath(Path.Combine(imageDir, user.UserName + ".png"));
 
-                if (!destPath.StartsWith(canonicalBasePath + Path.DirectorySeparatorChar))
+                if (!destPath.StartsWith(canonicalBasePath + Path.DirectorySeparatorChar) &&
+                    !destPath.Equals(canonicalBasePath))
                 {
                     throw new ArgumentException("Invalid file path");
                 }
