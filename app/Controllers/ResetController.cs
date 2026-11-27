@@ -254,7 +254,7 @@ namespace Verademo.Controllers
                         // get the number of seconds until some time in the last 30 days.
                         long vary = RandomNumberGenerator.GetInt32(30 * 24 * 3600);
 
-                        logger.Info("Adding a comment from " + WebUtility.UrlEncode(username) + " on blab ID " + Convert.ToString(i));
+                        logger.Info("Adding a comment from " + WebUtility.UrlEncode(username) + " on blab ID " + WebUtility.UrlEncode(Convert.ToString(i)));
                         commentsStatement.Parameters.Add(new SqlParameter {ParameterName = "@blabid", Value = i}  );
                         commentsStatement.Parameters.Add(new SqlParameter {ParameterName = "@blabber", Value = username}  );
                         commentsStatement.Parameters.Add(new SqlParameter {ParameterName = "@content", Value = comment}  );
